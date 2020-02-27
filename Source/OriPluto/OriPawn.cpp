@@ -3,6 +3,7 @@
 
 #include "OriPawn.h"
 #include "CollisionQueryParams.h"
+#include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 
 // Sets default values
@@ -29,11 +30,11 @@ void AOriPawn::PositionDirectionMovement(FVector Movement)
 	FVector End = Position + Movement;
 	FCollisionQueryParams CollisionParams(FName(TEXT("TraceUsableActor")), true, this);
 	DrawDebugLine(GetWorld(), Position, End, FColor::Green, false, 1, 0, 5);
-	if (ActorLineTraceSingle(OutHit, Position, End, ECC_Visibility, CollisionParams))
-	{
-		int i = 0;
-	}
-	if (ActorLineTraceSingle(OutHit, Position, End, ECC_Visibility, CollisionParams))
+	
+	auto world = GetWorld();
+
+	if (world && world->LineTraceSingleByChannel(OutHit, Position, End,
+		ECC_GameTraceChannel1, CollisionParams))
 	{
 		Position += OutHit.Distance / FVector::Distance(Position, End) * Movement;
 		/*GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("The Component Being Hit is: %s"), *OutHit.GetComponent()->GetName()));*/
