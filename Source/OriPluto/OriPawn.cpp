@@ -71,13 +71,32 @@ void AOriPawn::Bash()
 {
 
 }
-void AOriPawn::ObjectBash(FVector ObjectPosition)
+AActor* AOriPawn::ObjectDashBegin(TArray<AActor*> actors)
+{
+	AActor* ChooseActor = nullptr;
+	if (actors.Num() > 0)
+	{
+		ChooseActor = actors[0];
+		for (auto obj : actors)
+		{
+			auto actor = Cast< AActor>(obj);
+
+			auto dist = FVector::Distance(Position, actor->GetActorLocation());
+			if (dist < FVector::Distance(Position, ChooseActor->GetActorLocation()))
+			{
+				ChooseActor = actor;
+			}
+		}
+	}
+	return ChooseActor;
+}
+
+void AOriPawn::ObjectDash(FVector Direction)
 {
 	isSkyDash = true;
-	SkyDashTime = 0.6f;
-	FVector direction = ObjectPosition - Position;
-	direction.Normalize();
-	SkyDashVelocity = direction * 30;
+	SkyDashTime = 0.1f;
+	Direction.Normalize();
+	SkyDashVelocity = Direction * 30;
 	SkyDashAccelration = (SkyDashVelocity - SkyDashVelocity * 0.2f) / SkyDashTime;
 	
 }
@@ -160,7 +179,7 @@ void AOriPawn::Tick(float DeltaTime)
 			SkyDashVelocity -= SkyDashAccelration * dashTime;
 			if (SkyDashTime < 0)
 			{
-				isSkyDash = true;
+				isSkyDash = false;
 			}
 		}
 		UpdatePosition(DeltaTime);

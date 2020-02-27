@@ -83,7 +83,8 @@ public:
 		bool isJump;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool isDoubleJump;
-	bool isSkyDash;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool isSkyDash;
 	bool HasGravity;
 	bool isOnGround;
 	float SkyDashTime;
@@ -111,7 +112,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void Bash();
 	UFUNCTION(BlueprintCallable)
-		void ObjectBash(FVector ObjectPosition);
+		AActor* ObjectDashBegin(TArray<AActor*> actors);
+	UFUNCTION(BlueprintCallable)
+		void ObjectDash(FVector Direction);
 	UFUNCTION(BlueprintCallable)
 		bool IsOnGround();
 #pragma endregion
