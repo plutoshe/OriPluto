@@ -64,6 +64,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector JumpAcceleration;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector InitialJumpSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector InitialDoubleJumpSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector BoundsExtent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector DoubleJumpMomentum;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		float DoubleJumpDuration;
@@ -72,7 +79,16 @@ public:
 		FVector Position;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector Speed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool isJump;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool isDoubleJump;
+	bool isSkyDash;
 	bool HasGravity;
+	bool isOnGround;
+	float SkyDashTime;
+	FVector SkyDashVelocity;
+	FVector SkyDashAccelration;
 	
 	TMap<FString, FExternalAcceleration> ExternalAccelerations;
 	TArray<FExternalAccelerationDuration> ExternalAccelerationsDuration;

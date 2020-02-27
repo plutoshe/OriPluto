@@ -5,6 +5,7 @@
 #include "CollisionQueryParams.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "Components/ShapeComponent.h"
 
 // Sets default values
 AOriPawn::AOriPawn()
@@ -17,7 +18,14 @@ AOriPawn::AOriPawn()
 void AOriPawn::BeginPlay()
 {
 	Super::BeginPlay();
+	auto components = GetComponentsByTag(UShapeComponent::StaticClass(), FName(TEXT("bound")));
+	//for (auto component : components)
+	//{
+	//	auto shape = Cast<UShapeComponent>(component);
+	//	BoundsExtent = FMath::Max(BoundsExtent, shape->Bounds.BoxExtent);
+	//}
 	isPause = false;
+	isOnGround = false;
 	HasGravity = true;
 	Position = GetActorLocation();
 	ExternalAccelerations.Empty();
@@ -30,7 +38,7 @@ bool AOriPawn::PositionDirectionMovement(FVector Movement, FVector PositionOffse
 	FHitResult OutHit;
 	FVector End = Position + PositionOffset + Movement;
 	FCollisionQueryParams CollisionParams(FName(TEXT("TraceUsableActor")), true, this);
-	DrawDebugLine(GetWorld(), Position, End, FColor::Green, false, 1, 0, 5);
+	//DrawDebugLine(GetWorld(), Position, End, FColor::Green, false, 1, 0, 5);
 
 	auto world = GetWorld();
 
@@ -49,12 +57,14 @@ bool AOriPawn::PositionDirectionMovement(FVector Movement, FVector PositionOffse
 
 void AOriPawn::DoubleJump()
 {
+	isDoubleJump = true;
 	ExternalAccelerationsDuration.Add(FExternalAccelerationDuration(DoubleJumpMomentum, DoubleJumpDuration));
+	Speed += InitialDoubleJumpSpeed;
 }
 
 bool AOriPawn::IsOnGround()
 {
-	return false;
+	return isOnGround;
 }
 
 void AOriPawn::Bash()
@@ -63,11 +73,20 @@ void AOriPawn::Bash()
 }
 void AOriPawn::ObjectBash(FVector ObjectPosition)
 {
-
+	isSkyDash = true;
+	SkyDashTime = 0.6f;
+	FVector direction = ObjectPosition - Position;
+	direction.Normalize();
+	SkyDashVelocity = direction * 30;
+	SkyDashAccelration = (SkyDashVelocity - SkyDashVelocity * 0.2f) / SkyDashTime;
+	
 }
 
 void AOriPawn::NormalJump()
-{
+{	
+	isJump = true;
+	isOnGround = false;
+	Speed += InitialJumpSpeed;
 	ExternalAccelerations["NormalJump"].IsActivated = true;
 }
 void AOriPawn::NormalJumpStop()
@@ -98,7 +117,7 @@ void AOriPawn::UpdateSpeed(float DeltaTime)
 	
 	if (HasGravity)
 	{
-		Speed += GravityAcceleration;
+		Speed += GravityAcceleration * DeltaTime;
 	}
 }
 
@@ -107,19 +126,18 @@ void AOriPawn::UpdatePosition(float DeltaTime)
 	FVector ZForwardVector(0, 0, 1);
 	FVector YForwardVector(0, 1, 0);
 
-	FVector Orgin;
-	FVector BoundsExtent;
-	GetActorBounds(true, Orgin, BoundsExtent);
-
 	if (PositionDirectionMovement(ZForwardVector * Speed.Z,
 		ZForwardVector * (Speed.Z > 0)* BoundsExtent.Z - ZForwardVector * (Speed.Z < 0) * BoundsExtent.Z))
 	{
+		isOnGround = true;
+		isJump = false;
+		isDoubleJump = false;
 		Speed.Z = 0;
 	}
 	if (PositionDirectionMovement(YForwardVector * Speed.Y,
 		YForwardVector * (Speed.Y > 0)* BoundsExtent.Y - YForwardVector * (Speed.Y < 0) * BoundsExtent.Y))
 	{
-		Speed.X = 0;
+		Speed.Y = 0;
 	}
 	SetActorLocation(Position);
 }
@@ -130,7 +148,21 @@ void AOriPawn::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	if (!isPause)
 	{
-		UpdateSpeed(DeltaTime);
+		if (!isSkyDash)
+		{
+			UpdateSpeed(DeltaTime);
+		}
+		else
+		{
+			SkyDashTime -= DeltaTime;
+			auto dashTime = FMath::Min(SkyDashTime, DeltaTime);
+			Speed = SkyDashVelocity;
+			SkyDashVelocity -= SkyDashAccelration * dashTime;
+			if (SkyDashTime < 0)
+			{
+				isSkyDash = true;
+			}
+		}
 		UpdatePosition(DeltaTime);
 	}
 }
