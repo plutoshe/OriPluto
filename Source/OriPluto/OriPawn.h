@@ -78,7 +78,7 @@ public:
 	TArray<FExternalAccelerationDuration> ExternalAccelerationsDuration;
 	void UpdateSpeed(float DeltaTime);
 	void UpdatePosition(float DeltaTime);
-	void PositionDirectionMovement(FVector Movement);
+	bool PositionDirectionMovement(FVector Movement, FVector PositionOffset);
 
 #pragma region PlayerOperation
 	UFUNCTION(BlueprintCallable)

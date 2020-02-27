@@ -18,31 +18,33 @@ void AOriPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	isPause = false;
+	HasGravity = true;
 	Position = GetActorLocation();
 	ExternalAccelerations.Empty();
 	ExternalAccelerations.Add("Gravity", FExternalAcceleration(GravityAcceleration, false));
 	ExternalAccelerations.Add("NormalJump", FExternalAcceleration(JumpAcceleration, false));
 }
 
-void AOriPawn::PositionDirectionMovement(FVector Movement)
+bool AOriPawn::PositionDirectionMovement(FVector Movement, FVector PositionOffset)
 {
 	FHitResult OutHit;
-	FVector End = Position + Movement;
+	FVector End = Position + PositionOffset + Movement;
 	FCollisionQueryParams CollisionParams(FName(TEXT("TraceUsableActor")), true, this);
 	DrawDebugLine(GetWorld(), Position, End, FColor::Green, false, 1, 0, 5);
-	
+
 	auto world = GetWorld();
 
 	if (world && world->LineTraceSingleByChannel(OutHit, Position, End,
 		ECC_GameTraceChannel1, CollisionParams))
 	{
-		Position += OutHit.Distance / FVector::Distance(Position, End) * Movement;
-		/*GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("The Component Being Hit is: %s"), *OutHit.GetComponent()->GetName()));*/
+		Position += (OutHit.Distance - FVector::Distance(Position + PositionOffset, Position)) / FVector::Distance(Position + PositionOffset, End) * Movement;
+		return true;
 	}
 	else
 	{
 		Position += Movement;
 	}
+	return false;
 }
 
 void AOriPawn::DoubleJump()
@@ -104,8 +106,21 @@ void AOriPawn::UpdatePosition(float DeltaTime)
 {
 	FVector ZForwardVector(0, 0, 1);
 	FVector YForwardVector(0, 1, 0);
-	PositionDirectionMovement(ZForwardVector * Speed.Z);
-	PositionDirectionMovement(YForwardVector * Speed.Y);
+
+	FVector Orgin;
+	FVector BoundsExtent;
+	GetActorBounds(true, Orgin, BoundsExtent);
+
+	if (PositionDirectionMovement(ZForwardVector * Speed.Z,
+		ZForwardVector * (Speed.Z > 0)* BoundsExtent.Z - ZForwardVector * (Speed.Z < 0) * BoundsExtent.Z))
+	{
+		Speed.Z = 0;
+	}
+	if (PositionDirectionMovement(YForwardVector * Speed.Y,
+		YForwardVector * (Speed.Y > 0)* BoundsExtent.Y - YForwardVector * (Speed.Y < 0) * BoundsExtent.Y))
+	{
+		Speed.X = 0;
+	}
 	SetActorLocation(Position);
 }
 
