@@ -5,8 +5,15 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "OriPawn.generated.h"
-
-
+UENUM(BlueprintType)
+enum class EPhysicsStatus : uint8
+{
+	InSky 	UMETA(DisplayName = "Exploration"),
+	OnGround 	UMETA(DisplayName = "Building"),
+	Climbing UMETA(DisplayName = "Exploration"),
+	Gliding UMETA(DisplayName = "Exploration"),
+	SkyDash UMETA(DisplayName = "Exploration"),
+};
 USTRUCT(BlueprintType)
 struct FExternalAcceleration {
 	GENERATED_BODY()
@@ -83,14 +90,15 @@ public:
 		bool isJump;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool isDoubleJump;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool isSkyDash;
+
 	bool HasGravity;
 	bool isOnGround;
 	float SkyDashTime;
 	FVector SkyDashVelocity;
 	FVector SkyDashAccelration;
-	
+	EPhysicsStatus PreviousObjectStatus;
+	EPhysicsStatus ObjectStatus;
+
 	TMap<FString, FExternalAcceleration> ExternalAccelerations;
 	TArray<FExternalAccelerationDuration> ExternalAccelerationsDuration;
 	void UpdateSpeed(float DeltaTime);

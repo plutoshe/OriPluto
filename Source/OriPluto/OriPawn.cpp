@@ -93,7 +93,8 @@ AActor* AOriPawn::ObjectDashBegin(TArray<AActor*> actors)
 
 void AOriPawn::ObjectDash(FVector Direction)
 {
-	isSkyDash = true;
+	PreviousObjectStatus = ObjectStatus;
+	ObjectStatus = EPhysicsStatus::SkyDash;
 	SkyDashTime = 0.1f;
 	Direction.Normalize();
 	SkyDashVelocity = Direction * 30;
@@ -164,23 +165,38 @@ void AOriPawn::UpdatePosition(float DeltaTime)
 // Called every frame
 void AOriPawn::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
 	if (!isPause)
 	{
-		if (!isSkyDash)
+		Super::Tick(DeltaTime);
+		
+		switch (ObjectStatus)
 		{
+		case EPhysicsStatus::InSky:
 			UpdateSpeed(DeltaTime);
-		}
-		else
+			break;
+		case EPhysicsStatus::OnGround:
+			UpdateSpeed(DeltaTime);
+			break;
+		case EPhysicsStatus::Climbing:
+			UpdateSpeed(DeltaTime);
+			break;
+		case EPhysicsStatus::Gliding:
+			UpdateSpeed(DeltaTime);
+			break;
+		case EPhysicsStatus::SkyDash:
 		{
 			SkyDashTime -= DeltaTime;
-			auto dashTime = FMath::Min(SkyDashTime, DeltaTime);
+			float dashTime = FMath::Min(SkyDashTime, DeltaTime);
 			Speed = SkyDashVelocity;
 			SkyDashVelocity -= SkyDashAccelration * dashTime;
 			if (SkyDashTime < 0)
 			{
-				isSkyDash = false;
+				ObjectStatus = PreviousObjectStatus;
 			}
+			break;
+		}
+		default:
+			break;
 		}
 		UpdatePosition(DeltaTime);
 	}
