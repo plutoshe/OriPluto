@@ -16,6 +16,7 @@ enum class EBorder : uint8
 UENUM(BlueprintType)
 enum class EPhysicsStatus : uint8
 {
+	InSkyAfterWall UMETA(DisplayName = "InSkyAfterWall"),
 	InSky 	UMETA(DisplayName = "InSky"),
 	OnGround 	UMETA(DisplayName = "OnGround"),
 	OnWall UMETA(DisplayName = "OnWall"),

@@ -107,6 +107,10 @@ void AOriPawn::JumpStart()
 {
 	switch (ObjectStatus)
 	{
+	case EPhysicsStatus::InSkyAfterWall:
+		Speed.Z = InitialJumpSpeed.Z;
+		ExternalAccelerations["NormalJump"].IsActivated = true;
+		break;
 	case EPhysicsStatus::InSky:
 		ExternalAccelerationsDuration.Add(FExternalAccelerationDuration(DoubleJumpMomentum, DoubleJumpDuration));
 		Speed.Z = InitialDoubleJumpSpeed.Z;
@@ -133,6 +137,8 @@ void AOriPawn::JumpEnd()
 {
 	switch (ObjectStatus)
 	{
+	case EPhysicsStatus::InSkyAfterWall:
+		SetPhyscisStatus(EPhysicsStatus::InSky);
 	case EPhysicsStatus::InSky:
 		ExternalAccelerations["NormalJump"].IsActivated = false;
 		break;
@@ -232,7 +238,11 @@ void AOriPawn::UpdateStatus()
 	{
 		SetPhyscisStatus(EPhysicsStatus::OnGround);		
 	}
-	else if (ObjectStatus == EPhysicsStatus::OnGround || ObjectStatus == EPhysicsStatus::OnWall)
+	else if (ObjectStatus == EPhysicsStatus::OnWall)
+	{
+		SetPhyscisStatus(EPhysicsStatus::InSkyAfterWall);
+	}
+	else if (ObjectStatus == EPhysicsStatus::OnGround)
 	{
 		SetPhyscisStatus(EPhysicsStatus::InSky);
 	}
@@ -248,17 +258,10 @@ void AOriPawn::Tick(float DeltaTime)
 		switch (ObjectStatus)
 		{
 		case EPhysicsStatus::Falling:
-			UpdateSpeed(DeltaTime);
-			break;
+		case EPhysicsStatus::InSkyAfterWall:
 		case EPhysicsStatus::InSky:
-			UpdateSpeed(DeltaTime);
-			break;
 		case EPhysicsStatus::OnGround:
-			UpdateSpeed(DeltaTime);
-			break;
 		case EPhysicsStatus::OnWall:
-			UpdateSpeed(DeltaTime);
-			break;
 		case EPhysicsStatus::Gliding:
 			UpdateSpeed(DeltaTime);
 			break;
