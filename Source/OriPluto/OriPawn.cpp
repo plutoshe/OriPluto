@@ -28,6 +28,12 @@ void AOriPawn::BeginPlay()
 	isOnGround = false;
 	HasGravity = true;
 	Position = GetActorLocation();
+	BorderStatus.Empty();
+	BorderStatus.Add(EBorder::Left, false);
+	BorderStatus.Add(EBorder::Right, false);
+	BorderStatus.Add(EBorder::Top, false);
+	BorderStatus.Add(EBorder::Down, false);
+	
 	ExternalAccelerations.Empty();
 	ExternalAccelerations.Add("Gravity", FExternalAcceleration(GravityAcceleration, false));
 	ExternalAccelerations.Add("NormalJump", FExternalAcceleration(JumpAcceleration, false));
@@ -55,12 +61,6 @@ bool AOriPawn::PositionDirectionMovement(FVector Movement, FVector PositionOffse
 	return false;
 }
 
-void AOriPawn::DoubleJump()
-{
-	isDoubleJump = true;
-	ExternalAccelerationsDuration.Add(FExternalAccelerationDuration(DoubleJumpMomentum, DoubleJumpDuration));
-	Speed += InitialDoubleJumpSpeed;
-}
 
 bool AOriPawn::IsOnGround()
 {
@@ -97,21 +97,62 @@ void AOriPawn::ObjectDash(FVector Direction)
 	ObjectStatus = EPhysicsStatus::SkyDash;
 	SkyDashTime = 0.1f;
 	Direction.Normalize();
-	SkyDashVelocity = Direction * 30;
+	SkyDashVelocity = Direction * SkyDashMagnitude;
 	SkyDashAccelration = (SkyDashVelocity - SkyDashVelocity * 0.2f) / SkyDashTime;
 	
 }
 
-void AOriPawn::NormalJump()
-{	
-	isJump = true;
-	isOnGround = false;
-	Speed += InitialJumpSpeed;
-	ExternalAccelerations["NormalJump"].IsActivated = true;
-}
-void AOriPawn::NormalJumpStop()
+void AOriPawn::JumpStart()
 {
-	ExternalAccelerations["NormalJump"].IsActivated = false;
+	switch (ObjectStatus)
+	{
+	case EPhysicsStatus::InSky:
+		ExternalAccelerationsDuration.Add(FExternalAccelerationDuration(DoubleJumpMomentum, DoubleJumpDuration));
+		Speed.Z = InitialDoubleJumpSpeed.Z;
+		SetPhyscisStatus(EPhysicsStatus::Falling);
+		break;
+	case EPhysicsStatus::OnGround:
+		Speed.Z = InitialJumpSpeed.Z;
+		ExternalAccelerations["NormalJump"].IsActivated = true;
+		break;
+	case EPhysicsStatus::OnWall:
+		Speed.Z = InitialClimbingJumpSpeed.Z;
+		break;
+	case EPhysicsStatus::Gliding:
+		break;
+	case EPhysicsStatus::SkyDash:
+		break;
+	default:
+		break;
+	}
+	JumpTimes++;
+}
+
+void AOriPawn::JumpEnd()
+{
+	switch (ObjectStatus)
+	{
+	case EPhysicsStatus::InSky:
+		ExternalAccelerations["NormalJump"].IsActivated = false;
+		break;
+	case EPhysicsStatus::OnGround:
+		break;
+	case EPhysicsStatus::OnWall:
+		break;
+	case EPhysicsStatus::Gliding:
+		break;
+	case EPhysicsStatus::SkyDash:
+		break;
+	default:
+		break;
+	}
+	
+}
+
+void AOriPawn::SetPhyscisStatus(EPhysicsStatus status)
+{
+	PreviousObjectStatus = ObjectStatus;
+	ObjectStatus = status;
 }
 
 void AOriPawn::UpdateSpeed(float DeltaTime)
@@ -145,21 +186,55 @@ void AOriPawn::UpdatePosition(float DeltaTime)
 {
 	FVector ZForwardVector(0, 0, 1);
 	FVector YForwardVector(0, 1, 0);
-
-	if (PositionDirectionMovement(ZForwardVector * Speed.Z,
+	//if (Speed.Z > 0 && BorderStatus[EBorder::Top])
+	//{
+	//	Speed.Z = 0;
+	//}
+	//if (Speed.Z < 0 && BorderStatus[EBorder::Down])
+	//{
+	//	Speed.Z = 0;
+	//}
+	//if (Speed.Y < 0 && BorderStatus[EBorder::Left])
+	//{
+	//	Speed.Y = 0;
+	//}
+	//if (Speed.Y > 0 && BorderStatus[EBorder::Right])
+	//{
+	//	Speed.Y = 0;
+	//}
+	if (PositionDirectionMovement(ZForwardVector * Speed.Z * DeltaTime,
 		ZForwardVector * (Speed.Z > 0)* BoundsExtent.Z - ZForwardVector * (Speed.Z < 0) * BoundsExtent.Z))
+
 	{
 		isOnGround = true;
 		isJump = false;
 		isDoubleJump = false;
 		Speed.Z = 0;
 	}
-	if (PositionDirectionMovement(YForwardVector * Speed.Y,
+	if (PositionDirectionMovement(YForwardVector * Speed.Y * DeltaTime,
 		YForwardVector * (Speed.Y > 0)* BoundsExtent.Y - YForwardVector * (Speed.Y < 0) * BoundsExtent.Y))
 	{
 		Speed.Y = 0;
 	}
+	//Position += DeltaTime * Speed;
 	SetActorLocation(Position);
+}
+
+void AOriPawn::UpdateStatus()
+{
+	
+	if (BorderStatus[EBorder::Left] || BorderStatus[EBorder::Right])
+	{
+		SetPhyscisStatus(EPhysicsStatus::OnWall);
+	}
+	else if(BorderStatus[EBorder::Down])
+	{
+		SetPhyscisStatus(EPhysicsStatus::OnGround);		
+	}
+	else if (ObjectStatus == EPhysicsStatus::OnGround || ObjectStatus == EPhysicsStatus::OnWall)
+	{
+		SetPhyscisStatus(EPhysicsStatus::InSky);
+	}
 }
 
 // Called every frame
@@ -168,16 +243,19 @@ void AOriPawn::Tick(float DeltaTime)
 	if (!isPause)
 	{
 		Super::Tick(DeltaTime);
-		
+		UpdateStatus();
 		switch (ObjectStatus)
 		{
+		case EPhysicsStatus::Falling:
+			UpdateSpeed(DeltaTime);
+			break;
 		case EPhysicsStatus::InSky:
 			UpdateSpeed(DeltaTime);
 			break;
 		case EPhysicsStatus::OnGround:
 			UpdateSpeed(DeltaTime);
 			break;
-		case EPhysicsStatus::Climbing:
+		case EPhysicsStatus::OnWall:
 			UpdateSpeed(DeltaTime);
 			break;
 		case EPhysicsStatus::Gliding:
@@ -217,4 +295,9 @@ void AOriPawn::Pause()
 void AOriPawn::Continue()
 {
 	isPause = false;
+}
+
+void AOriPawn::SetBorderStatus(EBorder border, bool status)
+{
+	BorderStatus[border] = status;
 }

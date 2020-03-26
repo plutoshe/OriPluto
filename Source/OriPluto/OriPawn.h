@@ -6,13 +6,22 @@
 #include "GameFramework/Pawn.h"
 #include "OriPawn.generated.h"
 UENUM(BlueprintType)
+enum class EBorder : uint8
+{
+	Left 	UMETA(DisplayName = "Left"),
+	Right 	UMETA(DisplayName = "Right"),
+	Top UMETA(DisplayName = "Top"),
+	Down UMETA(DisplayName = "Down"),
+};
+UENUM(BlueprintType)
 enum class EPhysicsStatus : uint8
 {
-	InSky 	UMETA(DisplayName = "Exploration"),
-	OnGround 	UMETA(DisplayName = "Building"),
-	Climbing UMETA(DisplayName = "Exploration"),
-	Gliding UMETA(DisplayName = "Exploration"),
-	SkyDash UMETA(DisplayName = "Exploration"),
+	InSky 	UMETA(DisplayName = "InSky"),
+	OnGround 	UMETA(DisplayName = "OnGround"),
+	OnWall UMETA(DisplayName = "OnWall"),
+	Falling UMETA(DisplayName = "Falling"),
+	Gliding UMETA(DisplayName = "Gliding"),
+	SkyDash UMETA(DisplayName = "SkyDash"),
 };
 USTRUCT(BlueprintType)
 struct FExternalAcceleration {
@@ -81,6 +90,14 @@ public:
 		FVector DoubleJumpMomentum;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		float DoubleJumpDuration;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector InitialClimbingJumpSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float SkyDashMagnitude;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FVector ClimbJumpMomentum;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		float ClimbJumpDuration;
 	bool isPause;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector Position;
@@ -96,14 +113,19 @@ public:
 	float SkyDashTime;
 	FVector SkyDashVelocity;
 	FVector SkyDashAccelration;
-	EPhysicsStatus PreviousObjectStatus;
-	EPhysicsStatus ObjectStatus;
 
 	TMap<FString, FExternalAcceleration> ExternalAccelerations;
 	TArray<FExternalAccelerationDuration> ExternalAccelerationsDuration;
+	void UpdateStatus();
 	void UpdateSpeed(float DeltaTime);
 	void UpdatePosition(float DeltaTime);
 	bool PositionDirectionMovement(FVector Movement, FVector PositionOffset);
+	TMap< EBorder, bool> BorderStatus;
+#pragma region ObjectStatus
+	EPhysicsStatus PreviousObjectStatus;
+	EPhysicsStatus ObjectStatus;
+	int JumpTimes;
+#pragma endregion
 
 #pragma region PlayerOperation
 	UFUNCTION(BlueprintCallable)
@@ -112,11 +134,9 @@ public:
 		void Continue();
 
 	UFUNCTION(BlueprintCallable)
-		void NormalJump();
+		void JumpStart();
 	UFUNCTION(BlueprintCallable)
-		void NormalJumpStop();
-	UFUNCTION(BlueprintCallable)
-		void DoubleJump();
+		void JumpEnd();
 	UFUNCTION(BlueprintCallable)
 		void Bash();
 	UFUNCTION(BlueprintCallable)
@@ -125,5 +145,9 @@ public:
 		void ObjectDash(FVector Direction);
 	UFUNCTION(BlueprintCallable)
 		bool IsOnGround();
+	UFUNCTION(BlueprintCallable)
+		void SetPhyscisStatus(EPhysicsStatus status);
+	UFUNCTION(BlueprintCallable)
+		void SetBorderStatus(EBorder border, bool status);
 #pragma endregion
 };
