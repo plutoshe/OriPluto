@@ -120,7 +120,8 @@ public:
 	void UpdateSpeed(float DeltaTime);
 	void UpdatePosition(float DeltaTime);
 	bool PositionDirectionMovement(FVector Movement, FVector PositionOffset);
-	TMap< EBorder, bool> BorderStatus;
+
+	TMap< EBorder, TSet<FString>> BorderActorStatus;
 #pragma region ObjectStatus
 	EPhysicsStatus PreviousObjectStatus;
 	EPhysicsStatus ObjectStatus;
@@ -147,7 +148,8 @@ public:
 		bool IsOnGround();
 	UFUNCTION(BlueprintCallable)
 		void SetPhyscisStatus(EPhysicsStatus status);
+
 	UFUNCTION(BlueprintCallable)
-		void SetBorderStatus(EBorder border, bool status);
+		void UpdateBorderStatus(EBorder border, FString ActorName, bool status);
 #pragma endregion
 };

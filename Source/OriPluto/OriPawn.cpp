@@ -12,6 +12,11 @@ AOriPawn::AOriPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	BorderActorStatus.Empty();
+	BorderActorStatus.Add(EBorder::Left, TSet<FString>());
+	BorderActorStatus.Add(EBorder::Right, TSet<FString>());
+	BorderActorStatus.Add(EBorder::Top, TSet<FString>());
+	BorderActorStatus.Add(EBorder::Down, TSet<FString>());
 }
 
 // Called when the game starts or when spawned
@@ -28,11 +33,7 @@ void AOriPawn::BeginPlay()
 	isOnGround = false;
 	HasGravity = true;
 	Position = GetActorLocation();
-	BorderStatus.Empty();
-	BorderStatus.Add(EBorder::Left, false);
-	BorderStatus.Add(EBorder::Right, false);
-	BorderStatus.Add(EBorder::Top, false);
-	BorderStatus.Add(EBorder::Down, false);
+	
 	
 	ExternalAccelerations.Empty();
 	ExternalAccelerations.Add("Gravity", FExternalAcceleration(GravityAcceleration, false));
@@ -223,11 +224,11 @@ void AOriPawn::UpdatePosition(float DeltaTime)
 void AOriPawn::UpdateStatus()
 {
 	
-	if (BorderStatus[EBorder::Left] || BorderStatus[EBorder::Right])
+	if (BorderActorStatus[EBorder::Left].Num() > 0 || BorderActorStatus[EBorder::Right].Num() > 0)
 	{
 		SetPhyscisStatus(EPhysicsStatus::OnWall);
 	}
-	else if(BorderStatus[EBorder::Down])
+	else if(BorderActorStatus[EBorder::Down].Num() > 0)
 	{
 		SetPhyscisStatus(EPhysicsStatus::OnGround);		
 	}
@@ -297,7 +298,18 @@ void AOriPawn::Continue()
 	isPause = false;
 }
 
-void AOriPawn::SetBorderStatus(EBorder border, bool status)
+
+void AOriPawn::UpdateBorderStatus(EBorder border, FString ActorName, bool status)
 {
-	BorderStatus[border] = status;
+	if (BorderActorStatus.Contains(border))
+	{
+		if (status)
+		{
+			BorderActorStatus[border].Add(ActorName);
+		} 
+		else
+		{
+			BorderActorStatus[border].Remove(ActorName);
+		}
+	}
 }
